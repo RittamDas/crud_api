@@ -18,7 +18,7 @@ func main() {
 	var err error
 	crud.Client, err = mongo.NewClient(options.Client().ApplyURI("mongodb+srv://rittam:abcd1234@cluster0.whh2m.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Hello")
 	}
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	err = crud.Client.Connect(ctx)

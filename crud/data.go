@@ -13,16 +13,16 @@ import (
 )
 
 type User struct {
-	_id       primitive.ObjectID
-	created   primitive.DateTime
-	firstName string
-	lastName  string
-	age       struct {
+	_id       primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	Created   time.Time          `json:"created,omitempty" bson:"created,omitempty"`
+	FirstName string             `json:"firstName,omitempty" bson:"firstName,omitempty"`
+	LastName  string             `json:"lastName,omitempty" bson:"lastName,omitempty"`
+	Age       struct {
 		value    int64
 		interval int64
-	}
-	mobile string
-	active bool
+	} `json:"age,omitempty" bson:"age,omitempty"`
+	Mobile string `json:"mobile,omitempty" bson:"mobile,omitempty"`
+	Active bool   `json:"-"`
 }
 
 var Client *mongo.Client
@@ -31,10 +31,13 @@ func CreateUser(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Add("content-type", "application/json")
 	var user User
 	_ = json.NewDecoder(r.Body).Decode(&user)
+	user.Created = time.Now()
+	user.Active = true
 	collect := Client.Database("users").Collection("user_data")
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	res, _ := collect.InsertOne(ctx, user)
 	json.NewEncoder(rw).Encode(res)
+	rw.Write([]byte(`{ "message": "` + user.FirstName + `" }`))
 }
 
 func GetUserById(rw http.ResponseWriter, r *http.Request) {
@@ -50,7 +53,7 @@ func GetUserById(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
 		return
 	}
-	if !user.active {
+	if !user.Active {
 		rw.WriteHeader(http.StatusNotFound)
 		rw.Write([]byte(`{ "message" : "User Not Found" }`))
 		return
@@ -71,7 +74,7 @@ func UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
 		return
 	}
-	if !user.active {
+	if !user.Active {
 		rw.WriteHeader(http.StatusNotFound)
 		rw.Write([]byte(`{ "message" : "User Not Found" }`))
 		return
@@ -101,12 +104,12 @@ func DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
 		return
 	}
-	if !user.active {
+	if !user.Active {
 		rw.WriteHeader(http.StatusNotFound)
 		rw.Write([]byte(`{ "message" : "User Not Found" }`))
 		return
 	}
-	user.active = false
+	user.Active = false
 	json.NewEncoder(rw).Encode(user)
 }
 
@@ -124,7 +127,7 @@ func GetUsers(rw http.ResponseWriter, r *http.Request) {
 	for cursor.Next(ctx) {
 		var user User
 		cursor.Decode(&user)
-		if user.active {
+		if user.Active {
 			users = append(users, user)
 		}
 	}
