@@ -33,9 +33,9 @@ func main() {
 	fmt.Println("Connected to database")
 	router := mux.NewRouter()
 	router.HandleFunc("/users", crud.CreateUser).Methods("POST")
-	router.HandleFunc("/users/{_id}", crud.GetUserById).Methods("GET")
+	router.HandleFunc("/users/{id}", crud.GetUserById).Methods("GET")
 	router.HandleFunc("/users", crud.GetUsers).Methods("GET")
-	router.HandleFunc("/users/{_id}", crud.UpdateUser).Methods("PUT")
-	router.HandleFunc("/users/{_id}", crud.GetUserById).Methods("DELETE")
+	router.HandleFunc("/users/{id}", crud.UpdateUser).Methods("PUT")
+	router.HandleFunc("/users/{id}", crud.GetUserById).Methods("DELETE")
 	http.ListenAndServe(":8080", router)
 }

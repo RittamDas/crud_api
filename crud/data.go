@@ -13,7 +13,7 @@ import (
 )
 
 type User struct {
-	_id       primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
+	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Created   time.Time          `json:"created,omitempty" bson:"created,omitempty"`
 	FirstName string             `json:"firstName,omitempty" bson:"firstName,omitempty"`
 	LastName  string             `json:"lastName,omitempty" bson:"lastName,omitempty"`
@@ -43,14 +43,14 @@ func CreateUser(rw http.ResponseWriter, r *http.Request) {
 func GetUserById(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("content-type", "application/json")
 	p := mux.Vars(r)
-	id, _ := primitive.ObjectIDFromHex(p["_id"])
+	id, _ := primitive.ObjectIDFromHex(p["id"])
 	var user User
 	collect := Client.Database("users").Collection("user_data")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	err := collect.FindOne(ctx, User{_id: id}).Decode(&user)
+	err := collect.FindOne(ctx, bson.D{{"_id", id}, {"active", true}}).Decode(&user)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
-		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+		rw.Write([]byte(`{ "message": "` + user.ID.Hex() + `" }`))
 		return
 	}
 	if !user.Active {
@@ -64,11 +64,11 @@ func GetUserById(rw http.ResponseWriter, r *http.Request) {
 func UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("content-type", "application/json")
 	p := mux.Vars(r)
-	id, _ := primitive.ObjectIDFromHex(p["_id"])
+	id, _ := primitive.ObjectIDFromHex(p["id"])
 	var user User
 	collect := Client.Database("users").Collection("user_data")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	err := collect.FindOne(ctx, User{_id: id}).Decode(&user)
+	err := collect.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
@@ -79,7 +79,7 @@ func UpdateUser(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`{ "message" : "User Not Found" }`))
 		return
 	}
-	_, err = collect.DeleteOne(ctx, User{_id: id})
+	_, err = collect.DeleteOne(ctx, User{ID: id})
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
@@ -94,11 +94,11 @@ func UpdateUser(rw http.ResponseWriter, r *http.Request) {
 func DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Set("content-type", "application/json")
 	p := mux.Vars(r)
-	id, _ := primitive.ObjectIDFromHex(p["_id"])
+	id, _ := primitive.ObjectIDFromHex(p["id"])
 	var user User
 	collect := Client.Database("users").Collection("user_data")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	err := collect.FindOne(ctx, User{_id: id}).Decode(&user)
+	err := collect.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
@@ -109,7 +109,12 @@ func DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`{ "message" : "User Not Found" }`))
 		return
 	}
-	user.Active = false
+	err = collect.FindOneAndUpdate(ctx, bson.M{"_id": id}, bson.D{{"$set", bson.D{{"active", "false"}}}}).Decode(&user)
+	if err != nil {
+		rw.WriteHeader(http.StatusInternalServerError)
+		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+		return
+	}
 	json.NewEncoder(rw).Encode(user)
 }
 
