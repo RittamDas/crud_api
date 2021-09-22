@@ -22,7 +22,7 @@ type User struct {
 		interval int64
 	} `json:"age,omitempty" bson:"age,omitempty"`
 	Mobile string `json:"mobile,omitempty" bson:"mobile,omitempty"`
-	Active bool   `json:"-"`
+	Active bool   `json:"active" bson:"active"`
 }
 
 var Client *mongo.Client
@@ -68,7 +68,7 @@ func UpdateUser(rw http.ResponseWriter, r *http.Request) {
 	var user User
 	collect := Client.Database("users").Collection("user_data")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
-	err := collect.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+	err := collect.FindOne(ctx, bson.D{{"_id", id}}).Decode(&user)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
@@ -102,6 +102,7 @@ func DeleteUser(rw http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+		rw.Write([]byte(id.Hex()))
 		return
 	}
 	if !user.Active {
@@ -109,10 +110,11 @@ func DeleteUser(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(`{ "message" : "User Not Found" }`))
 		return
 	}
-	err = collect.FindOneAndUpdate(ctx, bson.M{"_id": id}, bson.D{{"$set", bson.D{{"active", "false"}}}}).Decode(&user)
+	err = collect.FindOneAndUpdate(ctx, bson.M{"_id": id}, bson.D{{"$set", bson.D{{"active", false}}}}).Decode(&user)
 	if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+		rw.Write([]byte(id.Hex()))
 		return
 	}
 	json.NewEncoder(rw).Encode(user)
