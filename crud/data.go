@@ -10,13 +10,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"gopkg.in/go-playground/validator.v9"
 )
 
 type User struct {
 	ID        primitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"`
 	Created   time.Time          `json:"created,omitempty" bson:"created,omitempty"`
-	FirstName string             `json:"firstName,omitempty" bson:"firstName,omitempty"`
-	LastName  string             `json:"lastName,omitempty" bson:"lastName,omitempty"`
+	FirstName string             `json:"firstName,omitempty" bson:"firstName,omitempty" validate:"required"`
+	LastName  string             `json:"lastName,omitempty" bson:"lastName,omitempty" validate:"required"`
 	Age       struct {
 		value    int64
 		interval int64
@@ -27,10 +28,20 @@ type User struct {
 
 var Client *mongo.Client
 
+func (u *User) Validate() error{
+	validate := validator.New()
+	return validate.Struct(u)
+}
+
 func CreateUser(rw http.ResponseWriter, r *http.Request) {
 	rw.Header().Add("content-type", "application/json")
 	var user User
 	_ = json.NewDecoder(r.Body).Decode(&user)
+	err := user.Validate()
+	if err != nil{
+		rw.WriteHeader(http.StatusBadRequest)
+		rw.Write([]byte(`{ "message": "` + err.Error() + `" }`))
+	}
 	user.Created = time.Now()
 	user.Active = true
 	collect := Client.Database("users").Collection("user_data")
