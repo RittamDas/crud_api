@@ -32,6 +32,9 @@ func main() {
 	}
 	fmt.Println("Connected to database")
 	router := mux.NewRouter()
+	router.HandleFunc("/",func(rw http.ResponseWriter, r *http.Request){
+		fmt.Printf("Hello")
+	})
 	router.HandleFunc("/users", crud.CreateUser).Methods("POST")
 	router.HandleFunc("/users/{id}", crud.GetUserById).Methods("GET")
 	router.HandleFunc("/users", crud.GetUsers).Methods("GET")
